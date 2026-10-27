@@ -55,12 +55,67 @@ public final class ChangeClock {
         return new VersionedBoolean(this, initial);
     }
 
+    /** Default capacity of a collection's change log: changes a consumer may lag behind before it rebuilds. */
+    public static final int DEFAULT_LOG_CAPACITY = 1024;
+
     public <T> VersionedList<T> list() {
-        return new VersionedList<>(this);
+        return list(DEFAULT_LOG_CAPACITY);
+    }
+
+    /** A list whose change log holds {@code logCapacity} changes. */
+    public <T> VersionedList<T> list(int logCapacity) {
+        return new VersionedList<>(this, logCapacity);
+    }
+
+    public <K, V> VersionedMap<K, V> map() {
+        return map(DEFAULT_LOG_CAPACITY);
+    }
+
+    /** A map whose change log holds {@code logCapacity} changes. */
+    public <K, V> VersionedMap<K, V> map(int logCapacity) {
+        return new VersionedMap<>(this, logCapacity);
+    }
+
+    public <T> VersionedSet<T> set() {
+        return set(DEFAULT_LOG_CAPACITY);
+    }
+
+    /** A set whose change log holds {@code logCapacity} changes. */
+    public <T> VersionedSet<T> set(int logCapacity) {
+        return new VersionedSet<>(this, logCapacity);
     }
 
     public VersionedDoubleArray doubleArray(int length) {
-        return new VersionedDoubleArray(this, length);
+        return doubleArray(length, DEFAULT_LOG_CAPACITY);
+    }
+
+    /** An array whose change log holds {@code logCapacity} changes. */
+    public VersionedDoubleArray doubleArray(int length, int logCapacity) {
+        return new VersionedDoubleArray(this, length, logCapacity);
+    }
+
+    public VersionedFloatArray floatArray(int length) {
+        return floatArray(length, DEFAULT_LOG_CAPACITY);
+    }
+
+    public VersionedFloatArray floatArray(int length, int logCapacity) {
+        return new VersionedFloatArray(this, length, logCapacity);
+    }
+
+    public VersionedIntArray intArray(int length) {
+        return intArray(length, DEFAULT_LOG_CAPACITY);
+    }
+
+    public VersionedIntArray intArray(int length, int logCapacity) {
+        return new VersionedIntArray(this, length, logCapacity);
+    }
+
+    public VersionedLongArray longArray(int length) {
+        return longArray(length, DEFAULT_LOG_CAPACITY);
+    }
+
+    public VersionedLongArray longArray(int length, int logCapacity) {
+        return new VersionedLongArray(this, length, logCapacity);
     }
 
     /** A cursor for a consumer that processes changes across many objects. */

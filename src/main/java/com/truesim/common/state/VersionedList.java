@@ -41,11 +41,14 @@ public final class VersionedList<T> extends AbstractList<T> implements RandomAcc
     private int size;
     private long version;
     private long structureVersion;
+    private final ChangeLog log;
 
-    VersionedList(ChangeClock clock) {
+    VersionedList(ChangeClock clock, int logCapacity) {
         this.clock = clock;
+        this.log = new ChangeLog(logCapacity, false);
         this.version = clock.stamp();
         this.structureVersion = version;
+        log.reset(version);
     }
 
     @Override
@@ -65,6 +68,7 @@ public final class VersionedList<T> extends AbstractList<T> implements RandomAcc
         if (!Objects.equals(old, element)) {
             elements[index] = element;
             stamps[index] = version = clock.stamp();
+            log.addIndex(version, index);
         }
         return old;
     }
@@ -73,6 +77,7 @@ public final class VersionedList<T> extends AbstractList<T> implements RandomAcc
     public void touch(int index) {
         Objects.checkIndex(index, size);
         stamps[index] = version = clock.stamp();
+        log.addIndex(version, index);
     }
 
     @Override
@@ -87,6 +92,7 @@ public final class VersionedList<T> extends AbstractList<T> implements RandomAcc
         size++;
         modCount++;
         stamps[index] = version = structureVersion = clock.stamp();
+        log.reset(version); // indices shifted: earlier entries no longer apply
     }
 
     @AllowAllocation("growing, amortized")
@@ -110,6 +116,7 @@ public final class VersionedList<T> extends AbstractList<T> implements RandomAcc
         size -= to - from;
         modCount++;
         version = structureVersion = clock.stamp();
+        log.reset(version);
     }
 
     @Override
@@ -120,6 +127,25 @@ public final class VersionedList<T> extends AbstractList<T> implements RandomAcc
     /** When element {@code index} was last set, added or touched. */
     public long version(int index) {
         return stamps[Objects.checkIndex(index, size)];
+    }
+
+    /**
+     * Visits the indices whose elements changed after {@code since}, each once, in the order of their latest changes,
+     * and returns {@code true}; or returns {@code false} without visiting when that cannot be told and the consumer
+     * should rebuild: elements were added or removed since, the log overflowed, or {@code since} is from before the
+     * list existed. Only what changed is visited, so a large list with few changes costs little.
+     */
+    public boolean changesSince(long since, IndexVisitor visitor) {
+        if (!log.covers(since)) {
+            return false;
+        }
+        for (int i = log.firstAfter(since); i < log.size(); i++) {
+            int index = log.index(i);
+            if (stamps[index] == log.stamp(i)) {
+                visitor.changed(index); // its latest change; earlier entries of the same index are skipped
+            }
+        }
+        return true;
     }
 
     /** When elements were last added or removed: indices of later elements may have changed. */
