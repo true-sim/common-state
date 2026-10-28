@@ -97,5 +97,6 @@ The primitive arrays and derived values are generated from one template by
 ./gradlew build
 ```
 
-To develop against a local build-logic checkout: `./gradlew build -Ptruesim.build-logic=../build-logic`.
+Uses `../build-logic` automatically when checked out next to this repository (override with
+`-Ptruesim.build-logic=<path>`), or fetches it from GitHub Packages.
 The build enforces platform independence, allocation-free code and 100% line and branch coverage.
