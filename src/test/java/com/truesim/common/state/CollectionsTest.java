@@ -82,7 +82,17 @@ class CollectionsTest {
         assertThat(complete[0]).isTrue();
         assertThat(indices(list, clock.now(), complete)).isEmpty();
         assertThat(complete[0]).isTrue();
-        // Adding or removing shifts indices: rebuild.
+        // Appending shifts no index: the new one is visited as changed.
+        since = clock.now();
+        list.add("item 10");
+        list.set(1, "one");
+        assertThat(indices(list, since, complete)).containsExactly(10, 1);
+        assertThat(complete[0]).isTrue();
+        // Inserting before the end or removing shifts indices: rebuild.
+        list.add(0, "first");
+        assertThat(indices(list, since, complete)).isEmpty();
+        assertThat(complete[0]).isFalse();
+        since = clock.now();
         list.remove(0);
         assertThat(indices(list, since, complete)).isEmpty();
         assertThat(complete[0]).isFalse();

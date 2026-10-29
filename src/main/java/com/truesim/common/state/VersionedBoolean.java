@@ -19,6 +19,7 @@ public final class VersionedBoolean implements Versioned {
 
     /** Sets the value; returns whether that was a change. */
     public boolean set(boolean value) {
+        clock.check(); // before anything changes
         if (this.value == value) {
             return false;
         }

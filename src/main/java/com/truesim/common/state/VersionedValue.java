@@ -26,6 +26,7 @@ public final class VersionedValue<T> implements Versioned {
 
     /** Sets the value; returns whether that was a change (the new value differs by {@code equals}). */
     public boolean set(T value) {
+        clock.check(); // before anything changes
         if (Objects.equals(this.value, value)) {
             return false;
         }
@@ -36,6 +37,7 @@ public final class VersionedValue<T> implements Versioned {
 
     /** Stamps a change without a new value, e.g. after mutating the value in place. */
     public void touch() {
+        clock.check();
         version = clock.stamp();
     }
 

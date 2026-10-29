@@ -64,6 +64,7 @@ public final class VersionedList<T> extends AbstractList<T> implements RandomAcc
 
     @Override
     public T set(int index, T element) {
+        clock.check(); // before anything changes
         T old = get(index);
         if (!Objects.equals(old, element)) {
             elements[index] = element;
@@ -75,6 +76,7 @@ public final class VersionedList<T> extends AbstractList<T> implements RandomAcc
 
     /** Stamps element {@code index} as changed, e.g. after mutating it in place. */
     public void touch(int index) {
+        clock.check();
         Objects.checkIndex(index, size);
         stamps[index] = version = clock.stamp();
         log.addIndex(version, index);
@@ -82,6 +84,7 @@ public final class VersionedList<T> extends AbstractList<T> implements RandomAcc
 
     @Override
     public void add(int index, T element) {
+        clock.check();
         Objects.checkIndex(index, size + 1);
         if (size == elements.length) {
             grow();
@@ -92,7 +95,11 @@ public final class VersionedList<T> extends AbstractList<T> implements RandomAcc
         size++;
         modCount++;
         stamps[index] = version = structureVersion = clock.stamp();
-        log.reset(version); // indices shifted: earlier entries no longer apply
+        if (index == size - 1) {
+            log.addIndex(version, index); // appended: no index shifted, followers see the new one as changed
+        } else {
+            log.reset(version); // indices shifted: earlier entries no longer apply
+        }
     }
 
     @AllowAllocation("growing, amortized")
@@ -110,6 +117,7 @@ public final class VersionedList<T> extends AbstractList<T> implements RandomAcc
 
     @Override
     protected void removeRange(int from, int to) {
+        clock.check();
         System.arraycopy(elements, to, elements, from, size - to);
         System.arraycopy(stamps, to, stamps, from, size - to);
         Arrays.fill(elements, size - (to - from), size, null);
@@ -132,8 +140,9 @@ public final class VersionedList<T> extends AbstractList<T> implements RandomAcc
     /**
      * Visits the indices whose elements changed after {@code since}, each once, in the order of their latest changes,
      * and returns {@code true}; or returns {@code false} without visiting when that cannot be told and the consumer
-     * should rebuild: elements were added or removed since, the log overflowed, or {@code since} is from before the
-     * list existed. Only what changed is visited, so a large list with few changes costs little.
+     * should rebuild: elements were inserted before the end or removed since, the log overflowed, or {@code since} is
+     * from before the list existed. Elements appended are visited as changed. Only what changed is visited, so a large
+     * list with few changes costs little.
      */
     public boolean changesSince(long since, IndexVisitor visitor) {
         if (!log.covers(since)) {

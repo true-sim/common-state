@@ -37,6 +37,7 @@ public final class VersionedDoubleArray implements Versioned {
 
     /** Sets entry {@code index}; returns whether that was a change. */
     public boolean set(int index, double value) {
+        clock.check(); // before anything changes
         double old = values[Objects.checkIndex(index, values.length)];
         if (!(Double.doubleToLongBits(old) != Double.doubleToLongBits(value))) {
             return false;
