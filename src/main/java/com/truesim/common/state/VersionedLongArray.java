@@ -37,6 +37,7 @@ public final class VersionedLongArray implements Versioned {
 
     /** Sets entry {@code index}; returns whether that was a change. */
     public boolean set(int index, long value) {
+        clock.check(); // before anything changes
         long old = values[Objects.checkIndex(index, values.length)];
         if (!(old != value)) {
             return false;

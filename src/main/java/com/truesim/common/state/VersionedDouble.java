@@ -22,6 +22,7 @@ public final class VersionedDouble implements Versioned {
 
     /** Sets the value; returns whether that was a change. */
     public boolean set(double value) {
+        clock.check(); // before anything changes
         if (Double.doubleToLongBits(this.value) == Double.doubleToLongBits(value)) {
             return false;
         }

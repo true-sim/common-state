@@ -19,6 +19,7 @@ public final class VersionedLong implements Versioned {
 
     /** Sets the value; returns whether that was a change. */
     public boolean set(long value) {
+        clock.check(); // before anything changes
         if (this.value == value) {
             return false;
         }

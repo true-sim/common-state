@@ -77,6 +77,7 @@ public final class VersionedMap<K, V> extends AbstractMap<K, V> implements Versi
     /** Sets the value of {@code key}: a change if the key is new or the value differs by {@code equals}. */
     @Override
     public V put(K key, V value) {
+        clock.check(); // before anything changes
         Slot<V> slot = slots.get(key);
         if (slot != null) {
             V old = slot.value;
@@ -102,6 +103,7 @@ public final class VersionedMap<K, V> extends AbstractMap<K, V> implements Versi
     @Override
     @SuppressWarnings("unchecked")
     public V remove(Object key) {
+        clock.check();
         Slot<V> slot = slots.remove(key);
         if (slot == null) {
             return null;
@@ -115,6 +117,7 @@ public final class VersionedMap<K, V> extends AbstractMap<K, V> implements Versi
     /** Removes every key. Consumers rebuild afterwards: {@link #changesSince} returns {@code false} across a clear. */
     @Override
     public void clear() {
+        clock.check();
         slots.clear();
         removed.clear();
         version = structureVersion = clock.stamp();
@@ -123,6 +126,7 @@ public final class VersionedMap<K, V> extends AbstractMap<K, V> implements Versi
 
     /** Stamps {@code key} as changed, e.g. after mutating its value in place; returns whether it is present. */
     public boolean touch(K key) {
+        clock.check();
         Slot<V> slot = slots.get(key);
         if (slot == null) {
             return false;

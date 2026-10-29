@@ -25,6 +25,27 @@ class StateTest {
     }
 
     @Test
+    void anOwnedClockRefusesChangesFromOtherThreads() throws InterruptedException {
+        VersionedDouble health = clock.doubleValue(100);
+        assertThat(clock.owner()).isNull();
+        clock.ownedBy(Thread.currentThread());
+        health.set(90); // the owner
+        Throwable[] thrown = new Throwable[1];
+        Thread other = Thread.ofPlatform().name("worker").start(() -> {
+            try {
+                health.set(80);
+            } catch (IllegalStateException e) {
+                thrown[0] = e;
+            }
+        });
+        other.join();
+        assertThat(thrown[0]).hasMessageContaining("not on worker");
+        assertThat(health.get()).isEqualTo(90);
+        clock.ownedBy(null); // any thread again
+        assertThat(clock.stamp()).isPositive();
+    }
+
+    @Test
     void valuesStampRealChangesOnly() {
         VersionedValue<String> name = clock.value("Ada");
         long created = name.version();
