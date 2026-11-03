@@ -61,6 +61,8 @@ if (!players.changesSince(since, (id, change) -> {
 | `VersionedList<T>` | A `List` with per-element stamps (`version(i)`), a structure stamp (adds and removes) and `touch(i)` |
 | `VersionedMap<K, V>`, `VersionedSet<T>` | Per-key stamps; `changesSince` reports keys `ADDED`, `CHANGED` or `REMOVED` |
 | `VersionedDoubleArray`, `VersionedFloatArray`, `VersionedIntArray`, `VersionedLongArray` | Fixed-size entries with per-entry stamps, e.g. values a render buffer mirrors |
+| `VersionedTree<T>` | Nodes with stable identity and dense ids; per-node value and children stamps, a structure stamp (adds, removes, moves) |
+| `VersionedDoubleRing`, `VersionedFloatRing` | The latest samples of a stream in a fixed-capacity ring; `changesSince` reports the range appended |
 | `Derived<T>`, `DerivedDouble`, `DerivedInt`, `DerivedLong`, `DerivedBoolean` | Lazily computed from inputs; versioned like their causing input change |
 | `Watch` | A consumer's view of one object: `update()` is true once per change |
 | `ChangeCursor` | A consumer's position on the clock: `mark()` returns the previous one |
@@ -76,7 +78,37 @@ collection existed), after elements were added to or removed from a list (indice
 Removed keys of maps and sets are remembered as long as their removal is in the ring, so memory
 stays bounded.
 
-The primitive arrays and derived values are generated from one template by
+## Trees and rings
+
+A `VersionedTree` is the model behind a tree view. Nodes keep their identity while they move, and their
+`id()` (the root's is 0, never reused) suits as the index of per-node arrays. A view compares
+`structureVersion()` to know whether to sync rows at all, then each node's `childrenVersion()` to skip
+unchanged branches; `changesSince` visits the nodes whose values changed, and keeps working across adds,
+removes and moves. Removing a node detaches its subtree: still readable, but it refuses changes.
+
+```java
+VersionedTree<Item> tree = clock.tree(rootItem);
+VersionedTree.Node<Item> folder = tree.root().add(folderItem);
+folder.add(fileItem);
+folder.move(tree.root(), 0);             // a change of structure, not of the value
+```
+
+A `VersionedDoubleRing` or `VersionedFloatRing` streams samples to a chart. Samples have absolute
+indices from `first()` to `appended()`, which go on across wrap-around and `clear()`, so a chart copies
+only what was appended since its last look:
+
+```java
+VersionedDoubleRing fps = clock.doubleRing(600);
+fps.append(frameRate);                   // or append(values, from, to): one change per call
+if (!fps.changesSince(since, (from, to) -> {
+    fps.copy(from, to, buffer, 0);       // allocation-free, across the wrap
+    chart.append(buffer, (int) (to - from));
+})) {
+    chart.reset(fps);                    // first time, after clear(), or the log overflowed
+}
+```
+
+The primitive arrays, rings and derived values are generated from one template by
 `tools/generate-primitives.sh`, so they behave alike.
 
 ## Rules
@@ -88,8 +120,8 @@ The primitive arrays and derived values are generated from one template by
 - A derived value's version is the version of the input change that produced it: reading it never
   moves the clock, so lazy recomputation does not make cursors see a change twice.
 - Checking, setting, `changesSince` and recomputing primitive derived values allocate nothing;
-  `Derived<T>` allocates what its computation allocates, and adding keys to maps and sets allocates
-  their entries.
+  `Derived<T>` allocates what its computation allocates, adding keys to maps and sets allocates
+  their entries, and adding nodes to trees allocates the nodes.
 
 ## Building
 
