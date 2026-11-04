@@ -116,6 +116,16 @@ public final class ChangeClock {
         return new VersionedSet<>(this, logCapacity);
     }
 
+    /** A tree of one node, the root, with {@code rootValue}. */
+    public <T> VersionedTree<T> tree(T rootValue) {
+        return tree(rootValue, DEFAULT_LOG_CAPACITY);
+    }
+
+    /** A tree whose change log holds {@code logCapacity} changes. */
+    public <T> VersionedTree<T> tree(T rootValue, int logCapacity) {
+        return new VersionedTree<>(this, rootValue, logCapacity);
+    }
+
     public VersionedDoubleArray doubleArray(int length) {
         return doubleArray(length, DEFAULT_LOG_CAPACITY);
     }
@@ -147,6 +157,24 @@ public final class ChangeClock {
 
     public VersionedLongArray longArray(int length, int logCapacity) {
         return new VersionedLongArray(this, length, logCapacity);
+    }
+
+    /** A ring of the latest {@code capacity} samples. */
+    public VersionedDoubleRing doubleRing(int capacity) {
+        return doubleRing(capacity, DEFAULT_LOG_CAPACITY);
+    }
+
+    /** A ring whose change log holds {@code logCapacity} appends. */
+    public VersionedDoubleRing doubleRing(int capacity, int logCapacity) {
+        return new VersionedDoubleRing(this, capacity, logCapacity);
+    }
+
+    public VersionedFloatRing floatRing(int capacity) {
+        return floatRing(capacity, DEFAULT_LOG_CAPACITY);
+    }
+
+    public VersionedFloatRing floatRing(int capacity, int logCapacity) {
+        return new VersionedFloatRing(this, capacity, logCapacity);
     }
 
     /** A cursor for a consumer that processes changes across many objects. */
